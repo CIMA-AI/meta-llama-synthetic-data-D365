@@ -1,0 +1,89 @@
+
+# configs/openai.yaml  ── just the LLM section ──
+llm:
+  provider: "api-endpoint"          # <- tells the kit we’re using HTTPS, not vLLM
+
+api-endpoint:
+  api_base: "https://api.openai.com/v1"   # OpenAI REST root
+  api_key: ""
+  model:    "gpt-4o-mini"
+  max_retries: 3
+  retry_delay: 1.0
+
+generation:
+  temperature: 0.5   # Higher = more creative, lower = more deterministic
+  top_p: 0.95        # Nucleus sampling parameter
+  chunk_size: 500   # Size of text chunks for processing
+  overlap: 50       # Overlap between chunks to maintain context
+  max_tokens: 10000   # Maximum tokens in LLM responses
+  num_pairs: 30      # Default number of QA pairs to generate
+  num_cot_examples: 5  # Default number of Chain of Thought examples to generate
+  num_cot_enhance_examples: null  # Maximum number of conversations to enhance (null = enhance all)
+  batch_size: 32     # Number of requests to batch together (for create)
+
+# Content curation parameters
+curate:
+  threshold: 7.0     # Default quality threshold (1-10)
+  batch_size: 32     # Number of items per batch for rating
+  inference_batch: 32 # Number of batches to process at once with VLLM
+  temperature: 0.1   # Temperature for rating (lower = more consistent)
+
+# Format conversion parameters
+format:
+  default: "jsonl"   # Default output format
+  include_metadata: true  # Include metadata in output files
+  pretty_json: true  # Use indentation in JSON output
+
+# Prompts for different tasks
+prompts:
+  # Summary generation prompt
+  summary: |
+    Summarize the provided document in 3–5 sentences. Your summary should clearly identify the main topic, highlight the most important concepts or procedures, and capture any essential technical details or requirements. Avoid including minor details or tangential information. Write your summary in clear, concise language, ensuring that it provides an accurate overview for someone unfamiliar with the original document
+  
+  # QA pair generation prompt
+  qa_generation: |
+    You are required to generate {num_pairs} complex and meaningful question-answer pairs from the provided document content to build a validation dataset. Follow these guidelines carefully: Please provide complete answers to the questions; do not give incomplete or partial answers. Each answer must provide all necessary details explicitly. Base your question on the technical aspects of the documents. Formulate realistic and meaningful questions that anticipate genuine inquiries a user might have regarding the technical procedures, rules, or detailed instructions described in the document. Avoid overly simplistic, trivial, or obvious questions. Ensure all questions directly address the technical aspects or detailed procedural content within the document. Do not create administrative or ownership-related
+    
+    Rules:
+    1. Questions must be about important facts in the text
+    2. Answers must be directly supported by the text
+    3. Return JSON format only:
+    
+    [
+      {{
+        "question": "Question 1?",
+        "answer": "Answer 1."
+      }},
+      {{
+        "question": "Question 2?",
+        "answer": "Answer 2."
+      }}
+    ]
+    
+    Text:
+    {text}
+  cot_generation: |
+    Create {num_examples} complex reasoning examples from this text that demonstrate chain-of-thought thinking.
+    
+    Each example should have:
+    1. A challenging question that requires step-by-step reasoning
+    2. Detailed reasoning steps that break down the problem
+    3. A concise final answer
+    
+    Return JSON format only:
+    
+    [
+      {{
+        "question": "Complex question about the text?",
+        "reasoning": "Step 1: First, I need to consider...\nStep 2: Then, I analyze...\nStep 3: Finally, I can conclude...",
+        "answer": "Final answer based on the reasoning."
+      }},
+      {{
+        "question": "Another complex question?",
+        "reasoning": "Step 1: First, I'll analyze...\nStep 2: Next, I need to determine...\nStep 3: Based on this analysis...",
+        "answer": "Final answer drawn from the reasoning."
+      }}
+    ]
+    
+    Text:
+    {text}
